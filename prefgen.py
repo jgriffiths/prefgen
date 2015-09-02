@@ -160,7 +160,7 @@ def parseAsciiDoc(args):
                     if line.startswith(':' + attr + ':'):
                         linear[-1].__dict__[attr] = line.split(':')[2].strip()
                         break
-        elif line[0] == '=':
+        elif line[0] in ['=','#']:
             # Section header
             linear.append(Item(line))
             mode = Item.MODE_TITLE
