@@ -41,7 +41,7 @@ Patches and/or pull requests are welcome.
 
 ## License
 
-GPL v2.1. Please see the file [LICENSE](./LICENSE) for more details and/or see the source
+GPL v2. Please see the file [LICENSE](./LICENSE) for more details and/or see the source
 at https://github.com/jgriffiths/prefgen.
 
 ### Usage
