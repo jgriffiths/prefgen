@@ -46,7 +46,7 @@ at https://github.com/jgriffiths/prefgen.
 
 ### Usage
 
-----
+```Shell
 usage: prefgen.py [-h] [-v] [--layout_file LAYOUT_FILE]
                   [--resource_file RESOURCE_FILE]
                   [--settings_file SETTINGS_FILE]
@@ -65,7 +65,7 @@ optional arguments:
   --settings_file SETTINGS_FILE
   --activity_file ACTIVITY_FILE
   --package_name PACKAGE_NAME
-----
+```
 
 ## Config file
 
