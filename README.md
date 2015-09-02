@@ -14,7 +14,7 @@ Creating a preference dialog by hand can be a lot of work. You have to:
    over the app.
 5. Create a listener to update summary text when options change
 6. Try to support newer/older/different form factor devices by switching
-   between +PreferenceScreen+ and +Fragment+, launching with actions versus
+   between `PreferenceScreen` and `Fragment`, launching with actions versus
    directly, etc, etc.
 
 Even once all this is done, some preferences may be under-documented. A single
