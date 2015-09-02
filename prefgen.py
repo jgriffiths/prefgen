@@ -206,7 +206,7 @@ def parseAsciiDoc(args):
     return Parsed(root, strings, linear)
 
 
-def outputStringsXml(args):
+def outputResourceStringsXml(args):
     of = args.resource_file
     of.write('<?xml version="1.0" encoding="utf-8"?>\n')
     of.write('<resources>\n')
@@ -304,46 +304,34 @@ def outputActivityClass(args):
 
 
 def parseArgs():
-    parser = ArgumentParser(version='1.0')
-    parser.add_argument('input_file', type=FileType('r'),
-                        help='Input AsciiDoc text file to process')
-    parser.add_argument('-l', '--layout_file', type=FileType('w'),
-                        help='Output xml layout file')
-    parser.add_argument('-r', '--resource_file', type=FileType('w'),
-                        help='Output strings xml resource file')
-    parser.add_argument('-s', '--settings_file', type=FileType('w'),
-                        help='Output settings java source file')
-    parser.add_argument('-a', '--activity_file', type=FileType('w'),
-                        help='Output activity java source file')
-    parser.add_argument('-p', '--package_name',
-                        help='package for generated java files. If X,Y are given, X is settings and Y the activity')
-    return parser.parse_args()
+    parser = ArgumentParser(version='1.0', fromfile_prefix_chars='@')
+    parser.add_argument('input_file', type=FileType('r'))
+    for f in ['layout', 'resource', 'settings', 'activity']:
+        parser.add_argument('--%s_file' % f)
+    parser.add_argument('--package_name')
+    args = parser.parse_args()
+    args.activity_package_name = args.package_name
+    if args.package_name is not None:
+        if ',' in args.package_name:
+            args.package_name, args.activity_package_name = args.package_name.split(',')
+    for f in ['layout', 'resource', 'settings', 'activity']:
+        name = '%s_file' % f
+        if getattr(args, name) is not None:
+            setattr(args, name, open(getattr(args, name), 'w'))
+    return args
 
 
 if __name__ == '__main__':
 
     args = parseArgs()
-    inputDir, inputName = os.path.split(os.path.splitext(args.input_file.name)[0])
-    outputName = os.path.join(inputDir, inputName)
-    outputNameU = os.path.join(inputDir, str.capitalize(inputName))
-
-    if args.layout_file is None:
-        args.layout_file = open(outputName + '_layout.xml', 'w')
-    if args.resource_file is None:
-        args.resource_file = open(outputName + '_strings.xml', 'w')
-    if args.settings_file is None:
-        args.settings_file = open(outputNameU + 'Settings.java', 'w')
-    if args.activity_file is None:
-        args.activity_file = open(outputNameU + 'SettingsActivity.java', 'w')
-
-    args.activity_package_name = args.package_name
-    if args.package_name is not None:
-        if ',' in args.package_name:
-            args.package_name, args.activity_package_name = args.package_name.split(',')
 
     args.parsed = parseAsciiDoc(args)
-    args.parsed.root.outputLayoutXml(args, 0)
-    outputStringsXml(args)
-    outputSettingsClass(args)
-    outputActivityClass(args)
 
+    if args.layout_file is not None:
+        args.parsed.root.outputLayoutXml(args, 0)
+    if args.resource_file is not None:
+        outputResourceStringsXml(args)
+    if args.settings_file is not None:
+        outputSettingsClass(args)
+    if args.activity_file is not None:
+        outputActivityClass(args)
