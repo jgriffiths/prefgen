@@ -274,9 +274,7 @@ def outputActivityClass(args):
     of.write('import android.content.SharedPreferences;\n\n')
     of.write('public class %s extends android.preference.PreferenceActivity\n' % className)
     of.write('        implements SharedPreferences.OnSharedPreferenceChangeListener {\n\n')
-    of.write('    public %s() {\n' % className)
-    of.write('        super();\n')
-    of.write('    }\n\n')
+    of.write('    public %s() {\n        super();\n    }\n\n' % className)
     of.write('    @Override\n')
     of.write('    protected void onCreate(android.os.Bundle savedInstanceState) {\n')
     of.write('        super.onCreate(savedInstanceState);\n')
@@ -285,7 +283,7 @@ def outputActivityClass(args):
     of.write('        addPreferencesFromResource(%sR.xml.settings);\n' % resPackage)
     of.write('    }\n\n')
     of.write('    @Override\n')
-    of.write('    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) { }\n\n')
+    of.write('    public void onSharedPreferenceChanged(SharedPreferences p, String k) { }\n\n')
     of.write('    protected SharedPreferences getPreferences() {\n')
     of.write('        return getPreferenceScreen().getSharedPreferences();\n')
     of.write('    }\n\n')
@@ -294,6 +292,7 @@ def outputActivityClass(args):
         getPreferences().%sOnSharedPreferenceChangeListener(this);\n    }\n""" % (p_r, p_r, method)
     of.write(getPauseResume('Resume', 'register'))
     of.write(getPauseResume('Pause', 'unregister'))
+    of.write('}\n')
 
 
 def parseArgs():
