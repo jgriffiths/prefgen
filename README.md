@@ -25,21 +25,23 @@ Finally it would be nice to add a new setting by only changing a single file.
 
 ## Implementation
 
-The script +prefgen.py+ takes as input an AsciiDoc file documenting the
+The script `prefgen.py` takes as input an AsciiDoc file documenting the
 desired preferences and outputs the various source files needed to add that
 dialog to an application. The source documentation can either be read as
 a text file and/or converted to documentation for the settings
-using http://www.methods.co.nz/asciidoc/[AsciiDoc]. In this way each setting
+using [AsciiDoc](http://www.methods.co.nz/asciidoc/). In this way each setting
 can include more detailed documentation.
 
 ## Status
 
-Current functionality is fairly basic; Please see the +samples/+ directory
-to see example input files. Patches/pull requests are welcome.
+Current functionality is fairly basic; Please see the [samples](./samples/)
+directory to see example input files.
+
+Patches and/or pull requests are welcome.
 
 ## License
 
-GPL v2.1. Please see the file LICENSE for more details and/or see the source
+GPL v2.1. Please see the file [LICENSE](./LICENSE) for more details and/or see the source
 at https://github.com/jgriffiths/prefgen.
 
 ### Usage
@@ -70,31 +72,31 @@ optional arguments:
 Rather than being placed on the command line, arguments can be given in
 a config file which may be more convenient. in this case each argument
 should be in the file in the form *--option_name=option_value*, with
-one such option per line. The +input_file+ option is the exception, if
+one such option per line. The `input_file` option is the exception, if
 in the file it should simply be given on a line of its own.
 
-To pass the config file use "@", e.g. +prefgen.py @file_name+.
+To pass the config file use "@", e.g. `prefgen.py @file_name`.
 
 ## Arguments
 
-+input_file+ Is the input AsciiDoc file to generate code from. The supported
+`input_file` Is the input AsciiDoc file to generate code from. The supported
 formatting convention is described below. It is likely that Markdown files
 will also process correctly although this isn't explicitly supported.
 
-+resource_file+ Is the destination string XML resource file. It should
-normally be placed in the +res/values/+ directory of your Android project
+`resource_file` Is the destination string XML resource file. It should
+normally be placed in the `res/values/` directory of your Android project
 as it is translatable.
 
-+layout_file+ Is the destination layout XML. It should normally be placed in
-the +res/xml/+ directory of your Android project since it is not translatable.
+`layout_file` Is the destination layout XML. It should normally be placed in
+the `res/xml/` directory of your Android project since it is not translatable.
 
-+settings_file+ Is the destination settings Java source file. This is a Java
+`settings_file` Is the destination settings Java source file. This is a Java
 class which can read and write the settings value so you can access them in
 your source code.
 
-+activity_file+ Is the destination activity Java source file. This file
+`activity_file` Is the destination activity Java source file. This file
 contains an
-https://developer.android.com/reference/android/preference/PreferenceActivity.html[Activity]
+[Activity](https://developer.android.com/reference/android/preference/PreferenceActivity.html)
 which is used to show the preferences dialog.
 
 ## Format
