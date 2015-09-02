@@ -285,22 +285,15 @@ def outputActivityClass(args):
     of.write('        addPreferencesFromResource(%sR.xml.settings);\n' % resPackage)
     of.write('    }\n\n')
     of.write('    @Override\n')
-    of.write('    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {\n')
-    of.write('    }\n\n')
+    of.write('    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) { }\n\n')
     of.write('    protected SharedPreferences getPreferences() {\n')
     of.write('        return getPreferenceScreen().getSharedPreferences();\n')
     of.write('    }\n\n')
-    of.write('    @Override\n')
-    of.write('    protected void onResume() {\n')
-    of.write('        super.onResume();\n')
-    of.write('        getPreferences().registerOnSharedPreferenceChangeListener(this);\n')
-    of.write('    }\n\n')
-    of.write('    @Override\n')
-    of.write('    protected void onPause() {\n')
-    of.write('        super.onPause();\n')
-    of.write('        getPreferences().unregisterOnSharedPreferenceChangeListener(this);\n')
-    of.write('    }\n')
-    of.write('}\n')
+    def getPauseResume(p_r, method):
+        return """    @Override\n    protected void on%s() {\n        super.on%s();
+        getPreferences().%sOnSharedPreferenceChangeListener(this);\n    }\n""" % (p_r, p_r, method)
+    of.write(getPauseResume('Resume', 'register'))
+    of.write(getPauseResume('Pause', 'unregister'))
 
 
 def parseArgs():
