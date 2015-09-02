@@ -35,8 +35,8 @@ JAVA_KEYWORDS_DICT = {k:'' for k in JAVA_KEYWORDS}
 
 
 class Parsed:
-    def __init__(self, root, strings, linear):
-        self.root, self.strings, self.linear = root, strings, linear
+    def __init__(self, root, strings, linear, keys):
+        self.root, self.strings, self.linear, self.keys = root, strings, linear, keys
 
 class Item():
     ATTRS = ['level', 'title', 'key', 'defaultValue', 'type', 'summary',
@@ -145,6 +145,8 @@ def parseAsciiDoc(args):
     """Parse an AsciiDoc representation of a settings dialog"""
     linear = []
     mode = Item.MODE_SEARCHING
+    inComment = False
+    keys = []
 
     for line in args.input_file.readlines():
 
@@ -153,13 +155,19 @@ def parseAsciiDoc(args):
             if mode > Item.MODE_SEARCHING and mode <= Item.MODE_SUMMARY:
                 mode += 1 # Blank line separates sections
             continue # blank line
+        elif line.startswith('//'):
+            inComment = not inComment
         elif line[0] == ':':
             # Key/Type name or an AsciiDoc attribute to ignore
             if mode != Item.MODE_SEARCHING:
-                for attr in Item.ATTRS:
-                    if line.startswith(':' + attr + ':'):
-                        linear[-1].__dict__[attr] = line.split(':')[2].strip()
-                        break
+                if inComment:
+                    if line.startswith(':key: '):
+                        keys.append(line[len(':key: '):])
+                else:
+                    for attr in Item.ATTRS:
+                        if line.startswith(':' + attr + ':'):
+                            linear[-1].__dict__[attr] = line.split(':')[2].strip()
+                            break
         elif line[0] in ['=','#']:
             # Section header
             linear.append(Item(line))
@@ -203,7 +211,7 @@ def parseAsciiDoc(args):
             if item.level > stack[-1].level and item.level < item.LEVEL_ITEM:
                 stack.append(item)
 
-    return Parsed(root, strings, linear)
+    return Parsed(root, strings, linear, keys)
 
 
 def outputResourceStringsXml(args):
@@ -228,8 +236,10 @@ def outputSettingsClass(args):
     of.write('import android.content.SharedPreferences;\n\n')
     of.write('public class %s {\n' % className)
     for i in items:
-        keyName = i.key.replace('.','_').upper()
-        of.write('    public final String PREF_%s = "%s";\n' % (keyName, i.key))
+        args.parsed.keys.append(i.key)
+    for key in sorted(args.parsed.keys):
+        keyName = key.replace('.','_').upper()
+        of.write('    public static final String PREF_%s = "%s";\n' % (keyName, key))
     of.write('    private SharedPreferences mPreferences;\n\n')
     of.write('    public %s(SharedPreferences preferences) {\n' % className)
     of.write('        mPreferences = preferences;\n')
