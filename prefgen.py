@@ -238,8 +238,8 @@ def outputSettingsClass(args):
     for i in items:
         args.parsed.keys.append(i.key)
     for key in sorted(args.parsed.keys):
-        keyName = key.replace('.','_').upper()
-        of.write('    public static final String PREF_%s = "%s";\n' % (keyName, key))
+        keyName = 'PREF_' + key.replace('.','_').upper()
+        of.write('    public static final String %s = "%s";\n' % (keyName, key))
     of.write('    private SharedPreferences mPreferences;\n\n')
     of.write('    public %s(SharedPreferences preferences) {\n' % className)
     of.write('        mPreferences = preferences;\n')
@@ -269,11 +269,12 @@ def outputSettingsClass(args):
         javaType = TYPEMAP[i.type]
         methodType = str.capitalize(javaType)
         methodKey = i.key.replace('.','_')
+        keyName = 'PREF_' + methodKey.upper()
         of.write('    public %s %s() {\n' % (javaType, makeVar('get_' + methodKey)))
-        of.write('        return get%s("%s", %s);\n' % (methodType, i.key, i.defaultValue))
+        of.write('        return get%s(%s, %s);\n' % (methodType, keyName, i.defaultValue))
         of.write('    }\n\n')
         of.write('    public void %s(%s value) {\n' % (makeVar('set_' + methodKey), javaType))
-        of.write('        put%s("%s", value);\n' % (methodType, i.key))
+        of.write('        put%s(%s, value);\n' % (methodType, keyName))
         of.write('    }\n\n')
     of.write('}\n')
 
