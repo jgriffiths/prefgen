@@ -162,6 +162,38 @@ import com.example.myapp.ui.SettingsActivity;
 
 In most cases you would do this when a menu choice is made.
 
+#### Deriving from Activity Class
+
+In the event you wish to perform some action(s) when preferences are
+changed, you can derive a class from the generated activity class as
+follows. Assume that the generated activity is `SettingsActivityBase`:
+
+```Java
+import com.example.myapp.MySettings;
+import android.content.SharedPreferences;
+
+// ...
+
+public class SettingsActivity extends SettingsActivityBase {
+{
+    // ...
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+        super.onSharedPreferenceChanged(prefs, key);
+
+        if (key.equals(MySettings.PREF_WHATEVER)) {
+            // The setting for PREF_WHATEVER has changed, handle it here
+        }
+    }
+}
+````
+
+If you derive in this way, ensure that it is your derived class that is
+given in `AndroidManifest.xml` and passed to `startActivity` as described
+above.
+
+
 ### Settings Class
 The settings class should be placed with your java source tree in accordance
 with the package name you gave it.
