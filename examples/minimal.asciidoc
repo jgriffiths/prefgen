@@ -1,0 +1,26 @@
+= Minimal Settings
+
+This document describes the settings for MinimalApp.
+
+== Introduction
+
+General introduction text.
+
+==== Boolean Preference (Y/N)
+
+Description of Boolean Preference.
+
+:defaultValue: true
+
+Optional (AsciiDoc only) documentation for the boolean preference.
+
+==== String Preference
+
+Description of String Preference.
+
+Optional (AsciiDoc only) documentation for the string preference.
+
+///////////////////////////////////////////
+Extra keys used internally
+:key: my.internal.pref
+///////////////////////////////////////////

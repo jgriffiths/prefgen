@@ -119,9 +119,14 @@ AsciiDoc output but unused by the code generation machinery.
 Some features can be overridden using AsciiDoc attributes for finer control;
 For example changing the preference key and using custom Dialog classes.
 
-The [Example Settings File](./examples/formatting.asciidoc) documents the
+The [Formatting Example File](./examples/formatting.asciidoc) documents the
 features currently supported. Or, you may wish to start with a
-[Minimal Example](./examples/minimal.asciidoc) for adding to your app.
+[Minimal Example File](./examples/minimal.asciidoc) for adding to your app.
+
+You can generate the code from the formatting example or minimal settings
+files by running the command (from this directory)
+ `prefgen.py @examples/formatting.config` or
+`prefgen.py @examples/minimal.config` respectively.
 
 ## Integrating Into Your Project
 
@@ -133,8 +138,8 @@ The generated string and layout resources should be placed within your apps
 The activity class should be placed with your java source tree in accordance
 with the package name you gave it.
 
-To show the settings dialog, you need to add an activity for it to you
-`AndroidManifest.xml` file under `manifest/application`, as follows:
+To show the settings dialog, you need to add an activity for it to your
+`AndroidManifest.xml` file under `/manifest/application`, as follows:
 
 ```XML
         <activity
