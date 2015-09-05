@@ -247,7 +247,7 @@ def outputResourceStringsXml(args):
     of.write('<resources>\n')
     strings = []
     for k,v in args.parsed.strings.iteritems():
-        strings.append('    <string name="%s">%s</string>\n' %(v, k))
+        strings.append('    <string name="%s">%s</string>\n' %(v, quoteattr(k)))
     for s in sorted(strings):
         of.write(s)
     for item in args.parsed.linear:
