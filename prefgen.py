@@ -21,6 +21,7 @@ import sys
 import string
 from argparse import ArgumentParser, FileType
 from collections import namedtuple
+from xml.sax.saxutils import quoteattr
 
 JAVA_KEYWORDS = [ 'abstract', 'assert', 'boolean', 'break', 'byte',
     'case', 'catch', 'char', 'class', 'const', 'continue', 'default', 'do',
@@ -40,7 +41,7 @@ class Parsed:
 
 class Item():
     ATTRS = ['level', 'title', 'key', 'defaultValue', 'type', 'summary',
-             'help', 'dialogLayout']
+             'help', 'dialogLayout', 'enumValues']
     LEVEL_TOP, LEVEL_SCREEN, LEVEL_CATEGORY, LEVEL_ITEM = 1, 2, 3, 4
     MODE_SEARCHING, MODE_TITLE, MODE_SUMMARY, MODE_HELP = 0, 1, 2, 3
     TYPES = ['', 'PreferenceScreen', 'PreferenceCategory', None]
@@ -52,6 +53,7 @@ class Item():
 
         level, title = line.split(' ', 1)
         self.level = len(level)
+        self.listItems = []
 
         self.type = self.TYPES[self.level - 1]
         if self.type is None:
@@ -100,6 +102,9 @@ class Item():
             for k in ['defaultValue', 'dialogLayout']:
                 if self.__dict__[k] != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, k, self.__dict__[k]))
+            if len(self.listItems):
+                of.write('\n%s    android:entries="@array/%s_array"' % (indentStr, self.key))
+                of.write('\n%s    android:entryValues="@array/%s_array_values"' % (indentStr, self.key))
             of.write(' />\n\n')
 
 
@@ -132,14 +137,20 @@ def makeStringRef(s):
     return s
 
 # See https://stackoverflow.com/questions/4303492
-def makeVar(s):
-    def camelcase():
-        yield str.lower
+def makeVar(s, initialLower=True):
+    def camelcase(initialLower):
+        if initialLower:
+            yield str.lower
         while True:
             yield str.capitalize
 
-    c = camelcase()
-    return "".join(c.next()(x) if x else '_' for x in s.split("_"))
+    c = camelcase(initialLower)
+    return ''.join(c.next()(x) if x else '_' for x in s.split('_'))
+
+def stripDot(s):
+    if s.endswith('.'):
+        return s[0:-1]
+    return s
 
 def parseAsciiDoc(args):
     """Parse an AsciiDoc representation of a settings dialog"""
@@ -157,6 +168,10 @@ def parseAsciiDoc(args):
             continue # blank line
         elif line.startswith('//'):
             inComment = not inComment
+        elif line[0] == '*':
+            # A list item
+            linear[-1].listItems.append(stripDot(line[1:].strip()))
+            linear[-1].type = 'ListPreference'
         elif line[0] == ':':
             # Key/Type name or an AsciiDoc attribute to ignore
             if mode != Item.MODE_SEARCHING:
@@ -184,9 +199,8 @@ def parseAsciiDoc(args):
         if item.key == '':
             item.key = makeKey(item.title)
 
-        if item.summary.endswith('.'):
-            # Android style removes final period from summary
-            item.summary = item.summary[0:-1]
+        # Android style removes final period from summary
+        item.summary = stripDot(item.summary)
 
         # Remove unused title/summary to avoid generating unused resources
         if item.type in ['', 'PreferenceScreen', 'PreferenceCategory']:
@@ -197,6 +211,19 @@ def parseAsciiDoc(args):
         for s in [item.title, item.summary]:
             if s != '':
                 strings[s] = makeStringRef(s)
+
+        if len(item.listItems) > 0:
+            item.defaultValue = '0'
+            n = 0
+            for li in item.listItems:
+                if li.endswith('(default)'):
+                    item.defaultValue = str(n)
+                    item.listItems[n] = item.listItems[n][0:-len('(default)')].strip()
+                    break
+
+        if item.enumValues != '':
+            item.enumValues = [x.strip() for x in item.enumValues.split(',')]
+            item.enumName = makeVar(item.title.replace(' ', '_'), False) + 'Enum'
 
         if root is None:
             root = item
@@ -223,6 +250,17 @@ def outputResourceStringsXml(args):
         strings.append('    <string name="%s">%s</string>\n' %(v, k))
     for s in sorted(strings):
         of.write(s)
+    for item in args.parsed.linear:
+        if len(item.listItems):
+            of.write('    <string-array name="%s_array">\n' % item.key)
+            for li in item.listItems:
+                of.write('        <item>%s</item>\n' % quoteattr(li))
+            of.write('    </string-array>\n')
+            # Can't use integer-array here due to an Android bug from 2009 :-(
+            of.write('    <string-array name="%s_array_values" translatable="false">\n' % item.key)
+            for i in range(0, len(item.listItems)):
+                of.write('        <item>%d</item>\n' % i)
+            of.write('    </string-array>\n')
     of.write('</resources>\n')
 
 
@@ -235,17 +273,35 @@ def outputSettingsClass(args):
         of.write('package %s;\n\n' % args.package_name)
     of.write('import android.content.SharedPreferences;\n\n')
     of.write('public class %s {\n' % className)
+    # Write key constants
     for i in items:
         args.parsed.keys.append(i.key)
     for key in sorted(args.parsed.keys):
         keyName = 'PREF_' + key.replace('.','_').upper()
         of.write('    public static final String %s = "%s";\n' % (keyName, key))
+
+    # Enums
+    for i in items:
+        if len(i.enumValues) == 0:
+            continue
+        of.write('    public enum %s {\n' % i.enumName)
+        for ev in i.enumValues:
+            of.write('        %s,\n' % ev)
+        of.write('    }\n')
+
+    # accessors
     of.write('    private SharedPreferences mPreferences;\n\n')
     of.write('    public %s(SharedPreferences preferences) {\n' % className)
     of.write('        mPreferences = preferences;\n')
     of.write('    }\n\n')
     of.write('    public SharedPreferences getPreferences() {\n')
     of.write('        return mPreferences;\n')
+    of.write('    }\n\n')
+    of.write('    public int getInt(String key, int def) {\n')
+    of.write('        return mPreferences.getInt(key, def);\n')
+    of.write('    }\n\n')
+    of.write('    public void putInt(String key, int value) {\n')
+    of.write('        mPreferences.edit().putInt(key, value).commit();\n')
     of.write('    }\n\n')
     of.write('    public boolean getBoolean(String key, boolean def) {\n')
     of.write('        return mPreferences.getBoolean(key, def);\n')
@@ -261,20 +317,32 @@ def outputSettingsClass(args):
     of.write('    public void putString(String key, String value) {\n')
     of.write('        mPreferences.edit().putString(key, value).commit();\n')
     of.write('    }\n\n')
-    TYPEMAP = { 'EditTextPreference': 'String',
-                'CheckBoxPreference': 'boolean' }
+    of.write('    private int getEnumInt(String key, int def) {\n')
+    of.write('        return Integer.parseInt(getString(key, String.valueOf(def)));\n')
+    of.write('    }\n\n')
+    of.write('    private void putEnumInt(String key, int value) {\n')
+    of.write('        putString(key, String.valueOf(value));\n')
+    of.write('    }\n\n')
+    listType = lambda i: (i.enumName, 'EnumInt') if len(i.enumValues) > 0 else ('String', 'String')
+    TYPEMAP = { 'EditTextPreference': lambda i: ('String',  'String'),
+                'CheckBoxPreference': lambda i: ('boolean', 'Boolean'),
+                'ListPreference':     listType}
     for i in items:
         if i.type not in TYPEMAP:
             continue
-        javaType = TYPEMAP[i.type]
-        methodType = str.capitalize(javaType)
+        isEnum = len(i.enumValues) > 0
+        javaType, methodType = TYPEMAP[i.type](i)
         methodKey = i.key.replace('.','_')
         keyName = 'PREF_' + methodKey.upper()
+
         of.write('    public %s %s() {\n' % (javaType, makeVar('get_' + methodKey)))
-        of.write('        return get%s(%s, %s);\n' % (methodType, keyName, i.defaultValue))
+        wrap = lambda s: s if not isEnum else i.enumName + '.values()[' + s + ']'
+        call = wrap('get%s(%s, %s)' % (methodType, keyName, i.defaultValue))
+        of.write('        return %s;\n' % call)
         of.write('    }\n\n')
         of.write('    public void %s(%s value) {\n' % (makeVar('set_' + methodKey), javaType))
-        of.write('        put%s(%s, value);\n' % (methodType, keyName))
+        convertMethod = '.ordinal()' if isEnum else ''
+        of.write('        put%s(%s, value%s);\n' % (methodType, keyName, convertMethod))
         of.write('    }\n\n')
     of.write('}\n')
 
