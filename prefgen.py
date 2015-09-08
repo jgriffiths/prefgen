@@ -289,7 +289,7 @@ def outputSettingsClass(args):
             of.write('        %s,\n' % ev)
         of.write('    }\n')
 
-    # accessors
+    # Raw accessors
     of.write('    private SharedPreferences mPreferences;\n\n')
     of.write('    public %s(SharedPreferences preferences) {\n' % className)
     of.write('        mPreferences = preferences;\n')
@@ -297,32 +297,27 @@ def outputSettingsClass(args):
     of.write('    public SharedPreferences getPreferences() {\n')
     of.write('        return mPreferences;\n')
     of.write('    }\n\n')
-    of.write('    public int getInt(String key, int def) {\n')
-    of.write('        return mPreferences.getInt(key, def);\n')
-    of.write('    }\n\n')
-    of.write('    public void putInt(String key, int value) {\n')
-    of.write('        mPreferences.edit().putInt(key, value).commit();\n')
-    of.write('    }\n\n')
-    of.write('    public boolean getBoolean(String key, boolean def) {\n')
-    of.write('        return mPreferences.getBoolean(key, def);\n')
-    of.write('    }\n\n')
-    of.write('    public boolean getBoolean(String key) { return getBoolean(key, false); }\n\n')
-    of.write('    public void putBoolean(String key, boolean value) {\n')
-    of.write('        mPreferences.edit().putBoolean(key, value).commit();\n')
-    of.write('    }\n\n')
-    of.write('    public String getString(String key, String def) {\n')
-    of.write('        return mPreferences.getString(key, def);\n')
-    of.write('    }\n\n')
-    of.write('    public String getString(String key) { return getString(key, ""); }\n\n')
-    of.write('    public void putString(String key, String value) {\n')
-    of.write('        mPreferences.edit().putString(key, value).commit();\n')
-    of.write('    }\n\n')
-    of.write('    private int getEnumInt(String key, int def) {\n')
-    of.write('        return Integer.parseInt(getString(key, String.valueOf(def)));\n')
-    of.write('    }\n\n')
-    of.write('    private void putEnumInt(String key, int value) {\n')
-    of.write('        putString(key, String.valueOf(value));\n')
-    of.write('    }\n\n')
+
+    accessors = [('int', 'Int', ',', '0'), ('boolean', 'Boolean', '', 'false'),
+                 ('String', 'String', '', '""'), ('int', 'EnumInt', '', '')]
+    for j, m, name, d in accessors:
+        of.write('    public %s get%s(final String key, final %s def) {\n' % (j, m, j))
+        if m == 'EnumInt':
+            of.write('        return Integer.parseInt(getString(key, String.valueOf(def)));\n')
+        else:
+            of.write('        return mPreferences.get%s(key, def);\n' % m)
+        of.write('    }\n\n')
+        if d != '':
+            of.write('    public %s get%s(final String key) {\n' % (j, m))
+            of.write('        return get%s(key, %s);\n' % (m, d))
+            of.write('    }\n\n')
+        of.write('    public void put%s(final String key, final %s value) {\n' % (m, j))
+        if m == 'EnumInt':
+            of.write('        putString(key, String.valueOf(value));\n')
+        else:
+            of.write('        mPreferences.edit().put%s(key, value).commit();\n' % m)
+        of.write('    }\n\n')
+
     listType = lambda i: (i.enumName, 'EnumInt') if len(i.enumValues) > 0 else ('String', 'String')
     TYPEMAP = { 'EditTextPreference': lambda i: ('String',  'String'),
                 'CheckBoxPreference': lambda i: ('boolean', 'Boolean'),
