@@ -40,7 +40,7 @@ class Parsed:
 
 class Item():
     ATTRS = ['level', 'title', 'key', 'defaultValue', 'type', 'summary',
-             'help', 'dialogLayout', 'enumValues']
+             'help', 'dialogLayout', 'enumValues', 'enabled']
     LEVEL_TOP, LEVEL_SCREEN, LEVEL_CATEGORY, LEVEL_ITEM = 1, 2, 3, 4
     MODE_SEARCHING, MODE_TITLE, MODE_SUMMARY, MODE_HELP = 0, 1, 2, 3
     TYPES = ['', 'PreferenceScreen', 'PreferenceCategory', None]
@@ -98,7 +98,7 @@ class Item():
             of.write('%s    android:key="%s"\n' % (indentStr, self.key))
             of.write('%s    android:title="%s"\n' % (indentStr, ref(self.title)))
             of.write('%s    android:summary="%s"' % (indentStr, ref(self.summary)))
-            for k in ['defaultValue', 'dialogLayout']:
+            for k in ['defaultValue', 'dialogLayout', 'enabled']:
                 if self.__dict__[k] != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, k, self.__dict__[k]))
             if len(self.listItems):
