@@ -40,7 +40,8 @@ class Parsed:
 
 class Item():
     ATTRS = ['level', 'title', 'key', 'keyName', 'defaultValue', 'type',
-             'summary', 'help', 'dialogLayout', 'enumValues', 'enabled']
+             'summary', 'summaryOn', 'summaryOff', 'help', 'dialogLayout',
+             'enumValues', 'enabled']
     LEVEL_TOP, LEVEL_SCREEN, LEVEL_CATEGORY, LEVEL_ITEM = 1, 2, 3, 4
     MODE_SEARCHING, MODE_TITLE, MODE_SUMMARY, MODE_HELP = 0, 1, 2, 3
     TYPES = ['', 'PreferenceScreen', 'PreferenceCategory', None]
@@ -101,8 +102,11 @@ class Item():
         else:
             of.write('%s<%s\n' % (indentStr, self.type))
             of.write('%s    android:key="%s"\n' % (indentStr, self.key))
-            of.write('%s    android:title="%s"\n' % (indentStr, self.xmlStringRef(self.title)))
-            of.write('%s    android:summary="%s"' % (indentStr, self.xmlStringRef(self.summary)))
+            of.write('%s    android:title="%s"' % (indentStr, self.xmlStringRef(self.title)))
+            for sType in ['summary', 'summaryOn', 'summaryOff']:
+                val = self.__dict__[sType]
+                if val != '':
+                    of.write('\n%s    android:%s="%s"' % (indentStr, sType, self.xmlStringRef(val)))
             for k in ['defaultValue', 'dialogLayout', 'enabled']:
                 if self.__dict__[k] != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, k, self.__dict__[k]))
@@ -221,8 +225,12 @@ def parseAsciiDoc(args):
             item.summary = ''
             if item.type != 'PreferenceCategory':
                 item.title = ''
+        elif item.type == 'CheckBoxPreference':
+            if item.summary.find('/') != -1:
+                item.summaryOn, item.summaryOff = item.summary.split('/')
+                item.summary = ''
 
-        for s in [item.title, item.summary]:
+        for s in [item.title, item.summary, item.summaryOn, item.summaryOff]:
             if s != '':
                 strings[s] = makeStringRef(s)
 
