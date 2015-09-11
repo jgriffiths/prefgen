@@ -423,7 +423,7 @@ def outputActivityClass(args):
     of.write('        int resId;\n')
     of.write('        if (p instanceof android.preference.ListPreference) {\n')
     mkSwitch('            ', listItems);
-    of.write('            CharSequence choice = ((android.preference.ListPreference)p).getEntry();\n')
+    of.write('            CharSequence choice = ((android.preference.ListPreference) p).getEntry();\n')
     of.write('            p.setSummary(createPreferenceText(resId, choice));\n')
     of.write('        }\n')
     of.write('    }\n\n')
