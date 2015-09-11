@@ -189,6 +189,9 @@ public class SettingsActivity extends SettingsActivityBase {
 }
 ````
 
+Note the call to `super.onSharedPreferenceChanged(prefs, key)`. If you do not call
+this method then any dynamic preference summaries will not be updated correctly.
+
 If you derive in this way, ensure that it is your derived class that is
 given in `AndroidManifest.xml` and passed to `startActivity` as described
 above.

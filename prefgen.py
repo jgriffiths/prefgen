@@ -39,8 +39,8 @@ class Parsed:
         self.root, self.strings, self.linear, self.keys = root, strings, linear, keys
 
 class Item():
-    ATTRS = ['level', 'title', 'key', 'defaultValue', 'type', 'summary',
-             'help', 'dialogLayout', 'enumValues', 'enabled']
+    ATTRS = ['level', 'title', 'key', 'keyName', 'defaultValue', 'type',
+             'summary', 'help', 'dialogLayout', 'enumValues', 'enabled']
     LEVEL_TOP, LEVEL_SCREEN, LEVEL_CATEGORY, LEVEL_ITEM = 1, 2, 3, 4
     MODE_SEARCHING, MODE_TITLE, MODE_SUMMARY, MODE_HELP = 0, 1, 2, 3
     TYPES = ['', 'PreferenceScreen', 'PreferenceCategory', None]
@@ -79,8 +79,14 @@ class Item():
         elif mode == self.MODE_HELP:
             self.help = append(self.help, line)
 
+    def xmlStringRef(self, s):
+        return '@string/' + args.parsed.strings[s]
+
+    def javaStringRef(self, args, s):
+        prefix = '' if args.package_name is None else args.package_name + '.'
+        return prefix + 'R.string.' + args.parsed.strings[s]
+
     def pre(self, args, indentStr):
-        ref = lambda s: '@string/' + args.parsed.strings[s]
 
         of = args.layout_file
         if self.type == '':
@@ -91,12 +97,12 @@ class Item():
             of.write('%s    xmlns:android="http://schemas.android.com/apk/res/android" >\n' % indentStr)
         elif self.type == 'PreferenceCategory':
             of.write('%s<PreferenceCategory\n' % indentStr)
-            of.write('%s    android:title="%s" >\n\n' % (indentStr, ref(self.title)))
+            of.write('%s    android:title="%s" >\n\n' % (indentStr, self.xmlStringRef(self.title)))
         else:
             of.write('%s<%s\n' % (indentStr, self.type))
             of.write('%s    android:key="%s"\n' % (indentStr, self.key))
-            of.write('%s    android:title="%s"\n' % (indentStr, ref(self.title)))
-            of.write('%s    android:summary="%s"' % (indentStr, ref(self.summary)))
+            of.write('%s    android:title="%s"\n' % (indentStr, self.xmlStringRef(self.title)))
+            of.write('%s    android:summary="%s"' % (indentStr, self.xmlStringRef(self.summary)))
             for k in ['defaultValue', 'dialogLayout', 'enabled']:
                 if self.__dict__[k] != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, k, self.__dict__[k]))
@@ -123,6 +129,9 @@ class Item():
 
 def makeKey(s):
     return s.lower().translate(None, string.punctuation).replace(' ', '_')
+
+def makeKeyName(k):
+    return 'PREF_' + k.replace('.','_').upper()
 
 def makeStringRef(s):
     s = s.lower().translate(None, string.punctuation)
@@ -155,7 +164,7 @@ def parseAsciiDoc(args):
     linear = []
     mode = Item.MODE_SEARCHING
     inComment = False
-    keys = []
+    keys = {}
 
     for line in args.input_file.readlines():
 
@@ -175,7 +184,8 @@ def parseAsciiDoc(args):
             if mode != Item.MODE_SEARCHING:
                 if inComment:
                     if line.startswith(':key: '):
-                        keys.append(line[len(':key: '):])
+                        k = line[len(':key: '):]
+                        keys[k] = makeKeyName(k)
                 else:
                     for attr in Item.ATTRS:
                         if line.startswith(':' + attr + ':'):
@@ -194,8 +204,14 @@ def parseAsciiDoc(args):
     strings = {}
 
     for item in linear:
-        if item.key == '':
-            item.key = makeKey(item.title)
+        if item.level != Item.LEVEL_ITEM:
+            item.key, item.keyName = '', ''
+        else:
+            if item.key == '':
+                item.key = makeKey(item.title)
+            if item.keyName == '':
+                item.keyName = makeKeyName(item.key)
+            keys[item.key] = item.keyName
 
         # Android style removes final period from summary
         item.summary = stripDot(item.summary)
@@ -279,10 +295,7 @@ def outputSettingsClass(args):
     of.write('import android.content.SharedPreferences;\n\n')
     of.write('public class %s {\n' % className)
     # Write key constants
-    for i in items:
-        args.parsed.keys.append(i.key)
-    for key in sorted(args.parsed.keys):
-        keyName = 'PREF_' + key.replace('.','_').upper()
+    for key, keyName in sorted(args.parsed.keys.items()):
         of.write('    public static final String %s = "%s";\n' % (keyName, key))
 
     # Enums
@@ -333,16 +346,15 @@ def outputSettingsClass(args):
         isEnum = len(i.enumValues) > 0
         javaType, methodType = TYPEMAP[i.type](i)
         methodKey = i.key.replace('.','_')
-        keyName = 'PREF_' + methodKey.upper()
 
         of.write('    public %s %s() {\n' % (javaType, makeVar('get_' + methodKey)))
         wrap = lambda s: s if not isEnum else i.enumName + '.values()[' + s + ']'
-        call = wrap('get%s(%s, %s)' % (methodType, keyName, i.defaultValue))
+        call = wrap('get%s(%s, %s)' % (methodType, i.keyName, i.defaultValue))
         of.write('        return %s;\n' % call)
         of.write('    }\n\n')
         of.write('    public void %s(%s value) {\n' % (makeVar('set_' + methodKey), javaType))
         convertMethod = '.ordinal()' if isEnum else ''
-        of.write('        put%s(%s, value%s);\n' % (methodType, keyName, convertMethod))
+        of.write('        put%s(%s, value%s);\n' % (methodType, i.keyName, convertMethod))
         of.write('    }\n\n')
     of.write('}\n')
 
@@ -350,9 +362,17 @@ def outputSettingsClass(args):
 def outputActivityClass(args):
     of = args.activity_file
     className = os.path.split(os.path.splitext(of.name)[0])[1]
+    listItems = [i for i in args.parsed.linear if i.type == 'ListPreference']
+
     of.write('// Generated by prefgen.py - Do not edit by hand!\n\n')
     if args.activity_package_name is not None:
         of.write('package %s;\n\n' % args.activity_package_name)
+
+    # FIXME: If settings_file isn't generated, output needed constants
+    #        into the activity here instead of including here
+    settingsClass = os.path.split(os.path.splitext(args.settings_file.name)[0])[1]
+    prefix = '' if args.package_name is None else args.package_name + '.'
+    of.write('import %s%s;\n\n' % (prefix, settingsClass))
     of.write('import android.content.SharedPreferences;\n\n')
     of.write('public class %s extends android.preference.PreferenceActivity\n' % className)
     of.write('        implements SharedPreferences.OnSharedPreferenceChangeListener {\n\n')
@@ -365,15 +385,50 @@ def outputActivityClass(args):
     of.write('        addPreferencesFromResource(%sR.xml.settings);\n' % resPackage)
     of.write('    }\n\n')
     of.write('    @Override\n')
-    of.write('    public void onSharedPreferenceChanged(SharedPreferences p, String k) { }\n\n')
+    of.write('    public void onSharedPreferenceChanged(SharedPreferences p, String key) {\n')
+    of.write('        updatePreferenceText(key);\n')
+    of.write('    }\n\n')
     of.write('    protected SharedPreferences getPreferences() {\n')
     of.write('        return getPreferenceScreen().getSharedPreferences();\n')
     of.write('    }\n\n')
-    def getPauseResume(p_r, method):
+    of.write('    protected String createPreferenceText(int id, CharSequence choice) {\n')
+    of.write('        return new StringBuilder().append(getResources().getString(id))\n')
+    of.write('                                  .append(" (").append(choice).append(")")\n')
+    of.write('                                  .toString();\n')
+    of.write('    }\n\n')
+
+    prefix = '' if settingsClass is None else settingsClass + '.'
+
+    def mkSwitch(indent, items):
+        write = lambda line: of.write(indent + line)
+        write('switch (key) {\n')
+        for i in items:
+            write('    case %s%s:\n' % (prefix, i.keyName))
+            write('        resId = %s;\n' % i.javaStringRef(args, i.summary))
+            write('        break;\n')
+        write('    default:\n')
+        write('        return;\n')
+        write('}\n')
+
+    of.write('    protected void updatePreferenceText(String key) {\n')
+    of.write('        android.preference.Preference p = findPreference(key);\n')
+    of.write('        int resId;\n')
+    of.write('        if (p instanceof android.preference.ListPreference) {\n')
+    mkSwitch('            ', listItems);
+    of.write('            CharSequence choice = ((android.preference.ListPreference)p).getEntry();\n')
+    of.write('            p.setSummary(createPreferenceText(resId, choice));\n')
+    of.write('        }\n')
+    of.write('    }\n\n')
+
+    def getPauseResume(p_r, method, updates):
         return """    @Override\n    protected void on%s() {\n        super.on%s();
-        getPreferences().%sOnSharedPreferenceChangeListener(this);\n    }\n""" % (p_r, p_r, method)
-    of.write(getPauseResume('Resume', 'register'))
-    of.write(getPauseResume('Pause', 'unregister'))
+        getPreferences().%sOnSharedPreferenceChangeListener(this);\n%s    }\n""" % (p_r, p_r, method, updates)
+    updates = ''
+    for i in listItems:
+        updates += '        updatePreferenceText(%s.%s);\n' % (settingsClass, i.keyName)
+
+    of.write(getPauseResume('Resume', 'register', updates))
+    of.write(getPauseResume('Pause', 'unregister', ''))
     of.write('}\n')
 
 
