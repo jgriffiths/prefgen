@@ -41,7 +41,7 @@ class Parsed:
 class Item():
     ATTRS = ['level', 'title', 'key', 'keyName', 'defaultValue', 'type',
              'summary', 'summaryOn', 'summaryOff', 'help', 'dialogLayout',
-             'enumValues', 'enabled']
+             'enumValues', 'enabled', 'dependency']
     LEVEL_TOP, LEVEL_SCREEN, LEVEL_CATEGORY, LEVEL_ITEM = 1, 2, 3, 4
     MODE_SEARCHING, MODE_TITLE, MODE_SUMMARY, MODE_HELP = 0, 1, 2, 3
     TYPES = ['', 'PreferenceScreen', 'PreferenceCategory', None]
@@ -107,7 +107,7 @@ class Item():
                 val = self.__dict__[sType]
                 if val != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, sType, self.xmlStringRef(val)))
-            for k in ['defaultValue', 'dialogLayout', 'enabled']:
+            for k in ['defaultValue', 'dialogLayout', 'enabled', 'dependency']:
                 if self.__dict__[k] != '':
                     of.write('\n%s    android:%s="%s"' % (indentStr, k, self.__dict__[k]))
             if len(self.listItems):
