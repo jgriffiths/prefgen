@@ -400,9 +400,7 @@ def outputActivityClass(args):
     of.write('        return getPreferenceScreen().getSharedPreferences();\n')
     of.write('    }\n\n')
     of.write('    protected String createPreferenceText(int id, CharSequence choice) {\n')
-    of.write('        return new StringBuilder().append(getResources().getString(id))\n')
-    of.write('                                  .append(" (").append(choice).append(")")\n')
-    of.write('                                  .toString();\n')
+    of.write('        return getResources().getString(id) + " (" + choice + ")";\n')
     of.write('    }\n\n')
 
     prefix = '' if settingsClass is None else settingsClass + '.'
