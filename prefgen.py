@@ -316,7 +316,7 @@ def outputSettingsClass(args):
         of.write('    }\n')
 
     # Raw accessors
-    of.write('    private SharedPreferences mPreferences;\n\n')
+    of.write('    private final SharedPreferences mPreferences;\n\n')
     of.write('    public %s(SharedPreferences preferences) {\n' % className)
     of.write('        mPreferences = preferences;\n')
     of.write('    }\n\n')
