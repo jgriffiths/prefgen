@@ -323,7 +323,8 @@ def outputSettingsClass(args):
     of.write('        return mPreferences;\n')
     of.write('    }\n\n')
 
-    accessors = [('int', 'Int', ',', '0'), ('boolean', 'Boolean', '', 'false'),
+    accessors = [('int', 'Int', ',', '0'), ('long', 'Long', ',', '0'),
+                 ('boolean', 'Boolean', '', 'false'),
                  ('String', 'String', '', '""'), ('int', 'EnumInt', '', '')]
     for j, m, name, d in accessors:
         of.write('    public %s get%s(final String key, final %s def) {\n' % (j, m, j))
